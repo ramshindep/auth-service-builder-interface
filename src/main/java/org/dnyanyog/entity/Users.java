@@ -93,4 +93,9 @@ public class Users { // Table
 		return "Users [userId=" + userId + ", username=" + username + ", email=" + email
 				+ ", age=" + age + "]";
 	}
+
+	public Users build() {
+	
+		return Users.this;
+	}
 }

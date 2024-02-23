@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.dnyanyog.dto.AddUserRequest;
 import org.dnyanyog.dto.AddUserResponse;
 import org.dnyanyog.dto.UserData;
+import org.dnyanyog.encryption.EncryptionService;
 import org.dnyanyog.entity.Users;
 import org.dnyanyog.repo.UsersRepository;
 import org.slf4j.Logger;
@@ -16,17 +17,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserManagementServiceImpl implements UserManagementService{
+public class UserManagementServiceImpl implements UserManagementService {
 
 	Logger logger = LoggerFactory.getLogger(UserManagementService.class);
+	
 	@Autowired
 	UsersRepository userRepo;
+	
 	@Autowired
 	AddUserResponse userResponse;
+	
 	@Autowired
 	private List<Long> userIds;
+	
+	@Autowired
+	EncryptionService encryptionService;
 
-	public Optional<AddUserResponse> addUser(AddUserRequest request) {
+
+	public Optional<AddUserResponse> addUser(AddUserRequest request){
 
 //		Users usersTable = new Users();
 //
@@ -36,51 +44,70 @@ public class UserManagementServiceImpl implements UserManagementService{
 //		usersTable.setUsername(request.getUsername());
 //
 //		usersTable = userRepo.save(usersTable);
-		Users usersTable=Users.getInstance()
-				.setAge(request.getAge())
-		        .setEmail(request.getEmail())
-		        .setPassword(request.getPassword())
-		        .setUsername(request.getUsername())
+		
+		Users usersTable;
+		try {
+			usersTable = Users.getInstance().setAge(request.getAge()).setEmail(request.getEmail())
+					.setPassword(encryptionService.encrypt(request.getPassword())).setUsername(request.getUsername());
+			usersTable = userRepo.save(usersTable);
 
-		        .setUserId(request.getUser_id());
-		        
+			userResponse.setMessage("User added successfuly");
+			userResponse.setStatus("Success");
+			userResponse.setUserId(usersTable.getUserId());
 
-		userResponse.setMessage("User added successfuly");
-		userResponse.setStatus("Success");
-		userResponse.setUserId(usersTable.getUserId());
-//		userResponse.setStatus("Success");
-//		userResponse.setMessage("User found");
-		System.out.println(usersTable.getEmail());
-		System.out.println(usersTable.getUsername());
-		System.out.println(usersTable.getPassword());
-		userResponse.setUserId(usersTable.getUserId());
-		userResponse.getUserData().setEmail(usersTable.getEmail());
-		userResponse.getUserData().setUsername(usersTable.getUsername());
-		userResponse.getUserData().setPassword(usersTable.getPassword());
-		userResponse.getUserData().setAge(usersTable.getAge());
+			System.out.println(usersTable.getEmail());
+			System.out.println(usersTable.getUsername());
+			System.out.println(usersTable.getPassword());
+			userResponse.setUserId(usersTable.getUserId());
+			userResponse.getUserData().setEmail(usersTable.getEmail());
+			userResponse.getUserData().setUsername(usersTable.getUsername());
+			userResponse.getUserData().setPassword(usersTable.getPassword());
+			userResponse.getUserData().setAge(usersTable.getAge());
 
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return Optional.of(userResponse);
+		
+				
+			
+
+		
+		
 	}
 
 	public AddUserResponse getSingleUser(Long userId) {
 
 		Optional<Users> receivedData = userRepo.findById(userId);
 
-		if (receivedData.isEmpty()) {
-			userResponse.setStatus("Fail");
-			userResponse.setMessage("User not found");
-		} else {
+
+		if (receivedData.isPresent()) {
 			Users user = receivedData.get();
+
+			String encyptedPassword = user.getPassword();
+
 			userResponse.setStatus("Success");
 			userResponse.setMessage("User found");
 			userResponse.setUserId(user.getUserId());
 			userResponse.getUserData().setEmail(user.getEmail());
 			userResponse.getUserData().setUsername(user.getUsername());
-			userResponse.getUserData().setPassword(user.getPassword());
+			try {
+				userResponse.getUserData().setPassword(encryptionService.decrypt(encyptedPassword));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			userResponse.getUserData().setAge(user.getAge());
+
+		} else {
+			userResponse.setStatus("Fail");
+			userResponse.setMessage("User not found");
 		}
 		return userResponse;
 	}
+
 
 	public List<Users> getAllUser() {
 		return userRepo.findAll();
@@ -98,20 +125,14 @@ public class UserManagementServiceImpl implements UserManagementService{
 		return userIds;
 	}
 
-	
-	
 	public AddUserResponse addUpdatesUser(UserData userData) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	
 	public Object addUpdateUser(AddUserRequest userRequest) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	
-	
 
 }
