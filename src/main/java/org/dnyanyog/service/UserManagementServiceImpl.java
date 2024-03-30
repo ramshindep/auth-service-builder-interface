@@ -4,12 +4,12 @@ import static java.util.Objects.nonNull;
 
 import java.util.List;
 import java.util.Optional;
-
 import org.dnyanyog.dto.AddUserRequest;
 import org.dnyanyog.dto.AddUserResponse;
 import org.dnyanyog.dto.UserData;
 import org.dnyanyog.encryption.EncryptionService;
 import org.dnyanyog.entity.Users;
+import org.dnyanyog.enums.ErrorCode;
 import org.dnyanyog.repo.UsersRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,120 +19,110 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserManagementServiceImpl implements UserManagementService {
 
-	Logger logger = LoggerFactory.getLogger(UserManagementService.class);
-	
-	@Autowired
-	UsersRepository userRepo;
-	
-	@Autowired
-	AddUserResponse userResponse;
-	
-	@Autowired
-	private List<Long> userIds;
-	
-	@Autowired
-	EncryptionService encryptionService;
+  Logger logger = LoggerFactory.getLogger(UserManagementService.class);
 
+  @Autowired UsersRepository userRepo;
 
-	public Optional<AddUserResponse> addUser(AddUserRequest request){
+  @Autowired AddUserResponse userResponse;
 
-//		Users usersTable = new Users();
-//
-//		usersTable.setAge(request.getAge());
-//		usersTable.setEmail(request.getEmail());
-//		usersTable.setPassword(request.getPassword());
-//		usersTable.setUsername(request.getUsername());
-//
-//		usersTable = userRepo.save(usersTable);
-		
-		Users usersTable;
-		try {
-			usersTable = Users.getInstance().setAge(request.getAge()).setEmail(request.getEmail())
-					.setPassword(encryptionService.encrypt(request.getPassword())).setUsername(request.getUsername());
-			usersTable = userRepo.save(usersTable);
+  @Autowired private List<Long> userIds;
 
-			userResponse.setMessage("User added successfuly");
-			userResponse.setStatus("Success");
-			userResponse.setUserId(usersTable.getUserId());
+  @Autowired EncryptionService encryptionService;
 
-			System.out.println(usersTable.getEmail());
-			System.out.println(usersTable.getUsername());
-			System.out.println(usersTable.getPassword());
-			userResponse.setUserId(usersTable.getUserId());
-			userResponse.getUserData().setEmail(usersTable.getEmail());
-			userResponse.getUserData().setUsername(usersTable.getUsername());
-			userResponse.getUserData().setPassword(usersTable.getPassword());
-			userResponse.getUserData().setAge(usersTable.getAge());
+  public Optional<AddUserResponse> addUser(AddUserRequest request) {
 
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return Optional.of(userResponse);
-		
-				
-			
+    //		Users usersTable = new Users();
+    //
+    //		usersTable.setAge(request.getAge());
+    //		usersTable.setEmail(request.getEmail());
+    //		usersTable.setPassword(request.getPassword());
+    //		usersTable.setUsername(request.getUsername());
+    //
+    //		usersTable = userRepo.save(usersTable);
 
-		
-		
-	}
+    Users usersTable;
+    try {
+      usersTable =
+          Users.getInstance()
+              .setAge(request.getAge())
+              .setEmail(request.getEmail())
+              .setPassword(encryptionService.encrypt(request.getPassword()))
+              .setUsername(request.getUsername());
+      usersTable = userRepo.save(usersTable);
 
-	public AddUserResponse getSingleUser(Long userId) {
+      userResponse.setMessage(ErrorCode.USER_ADD_SUCCESS.getMessage());
+      userResponse.setStatus(ErrorCode.USER_ADD_SUCCESS.getStatus());
+      userResponse.setUserId(usersTable.getUserId());
 
-		Optional<Users> receivedData = userRepo.findById(userId);
+      System.out.println(usersTable.getEmail());
+      System.out.println(usersTable.getUsername());
+      System.out.println(usersTable.getPassword());
+      userResponse.setUserId(usersTable.getUserId());
+      userResponse.getUserData().setEmail(usersTable.getEmail());
+      userResponse.getUserData().setUsername(usersTable.getUsername());
+      userResponse.getUserData().setPassword(usersTable.getPassword());
+      userResponse.getUserData().setAge(usersTable.getAge());
 
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return Optional.of(userResponse);
+  }
 
-		if (receivedData.isPresent()) {
-			Users user = receivedData.get();
+  public AddUserResponse getSingleUser(Long userId) {
 
-			String encyptedPassword = user.getPassword();
+    Optional<Users> receivedData = userRepo.findById(userId);
 
-			userResponse.setStatus("Success");
-			userResponse.setMessage("User found");
-			userResponse.setUserId(user.getUserId());
-			userResponse.getUserData().setEmail(user.getEmail());
-			userResponse.getUserData().setUsername(user.getUsername());
-			try {
-				userResponse.getUserData().setPassword(encryptionService.decrypt(encyptedPassword));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			userResponse.getUserData().setAge(user.getAge());
+    if (receivedData.isPresent()) {
+      Users user = receivedData.get();
 
-		} else {
-			userResponse.setStatus("Fail");
-			userResponse.setMessage("User not found");
-		}
-		return userResponse;
-	}
+      String encyptedPassword = user.getPassword();
 
+      userResponse.setStatus(ErrorCode.USER_FOUND.getStatus());
+      userResponse.setMessage(ErrorCode.USER_FOUND.getMessage());
+      userResponse.setUserId(user.getUserId());
+      userResponse.getUserData().setEmail(user.getEmail());
+      userResponse.getUserData().setUsername(user.getUsername());
+      try {
+        userResponse.getUserData().setPassword(encryptionService.decrypt(encyptedPassword));
+      } catch (Exception e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      userResponse.getUserData().setAge(user.getAge());
 
-	public List<Users> getAllUser() {
-		return userRepo.findAll();
-	}
+    } else {
+      userResponse.setStatus(ErrorCode.USER_NOTFOUND.getStatus());
 
-	public List<Long> getAllUserIds() {
+      userResponse.setMessage(ErrorCode.USER_NOTFOUND.getMessage());
+    }
+    return userResponse;
+  }
 
-		List<Users> users = userRepo.findAll();
+  public List<Users> getAllUser() {
+    return userRepo.findAll();
+  }
 
-		for (Users user : users) {
-			if (nonNull(user)) {
-				userIds.add(user.getUserId());
-			}
-		}
-		return userIds;
-	}
+  public List<Long> getAllUserIds() {
 
-	public AddUserResponse addUpdatesUser(UserData userData) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    List<Users> users = userRepo.findAll();
 
-	public Object addUpdateUser(AddUserRequest userRequest) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    for (Users user : users) {
+      if (nonNull(user)) {
+        userIds.add(user.getUserId());
+      }
+    }
+    return userIds;
+  }
 
+  public AddUserResponse addUpdatesUser(UserData userData) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public Object addUpdateUser(AddUserRequest userRequest) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }
